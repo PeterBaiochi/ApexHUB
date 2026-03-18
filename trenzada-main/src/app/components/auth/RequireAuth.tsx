@@ -1,0 +1,13 @@
+import { Navigate, Outlet, useLocation } from "react-router";
+import { isAuthenticated } from "../../auth/auth";
+
+export function RequireAuth() {
+  const location = useLocation();
+
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  return <Outlet />;
+}
+
