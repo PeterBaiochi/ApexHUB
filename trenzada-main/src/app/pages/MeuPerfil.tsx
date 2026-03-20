@@ -21,6 +21,7 @@ import {
   Activity,
 } from "lucide-react";
 import { getSession } from "../auth/auth";
+import { ROLE_LABELS, UserRole } from "../auth/hierarchyTypes";
 
 export function MeuPerfil() {
   const [isEditingPersonal, setIsEditingPersonal] = useState(false);
@@ -32,12 +33,103 @@ export function MeuPerfil() {
   const session = getSession();
   const displayName = session?.name?.trim() || "Usuário";
   const displayEmail = session?.email?.trim() || "usuario@exemplo.com";
+  const role = (session?.role as UserRole | undefined) ?? UserRole.AFFILIATE;
   const initials = displayName
     .split(" ")
     .filter(Boolean)
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join("");
+
+  const profileByRole: Record<
+    UserRole,
+    { status: string; ranking: string; totalEarnings: string; conversion: string }
+  > = {
+    [UserRole.ADMIN]: {
+      status: `${ROLE_LABELS[UserRole.ADMIN]} MASTER`,
+      ranking: "#01",
+      totalEarnings: "R$ 0,00",
+      conversion: "N/A",
+    },
+    [UserRole.SUPERVISOR]: {
+      status: ROLE_LABELS[UserRole.SUPERVISOR].toUpperCase(),
+      ranking: "#08",
+      totalEarnings: "R$ 0,00",
+      conversion: "N/A",
+    },
+    [UserRole.AFFILIATE_MANAGER]: {
+      status: ROLE_LABELS[UserRole.AFFILIATE_MANAGER].toUpperCase(),
+      ranking: "#15",
+      totalEarnings: "R$ 48.920,00",
+      conversion: "7.1%",
+    },
+    [UserRole.VIP_BLACK]: {
+      status: ROLE_LABELS[UserRole.VIP_BLACK].toUpperCase(),
+      ranking: "#03",
+      totalEarnings: "R$ 237.450,00",
+      conversion: "12.8%",
+    },
+    [UserRole.VIP_GOLD]: {
+      status: ROLE_LABELS[UserRole.VIP_GOLD].toUpperCase(),
+      ranking: "#11",
+      totalEarnings: "R$ 156.330,00",
+      conversion: "10.2%",
+    },
+    [UserRole.VIP_SILVER]: {
+      status: ROLE_LABELS[UserRole.VIP_SILVER].toUpperCase(),
+      ranking: "#24",
+      totalEarnings: "R$ 98.740,00",
+      conversion: "8.9%",
+    },
+    [UserRole.AFFILIATE]: {
+      status: ROLE_LABELS[UserRole.AFFILIATE].toUpperCase(),
+      ranking: "#47",
+      totalEarnings: "R$ 127.450,00",
+      conversion: "8.5%",
+    },
+  };
+  const roleProfile = profileByRole[role] ?? profileByRole[UserRole.AFFILIATE];
+  const statusBadgeByRole: Record<
+    UserRole,
+    { wrapperClass: string; iconClass: string; textClass: string }
+  > = {
+    [UserRole.ADMIN]: {
+      wrapperClass: "bg-red-500/10 border-red-500/30",
+      iconClass: "text-red-400",
+      textClass: "text-red-300",
+    },
+    [UserRole.SUPERVISOR]: {
+      wrapperClass: "bg-purple-500/10 border-purple-500/30",
+      iconClass: "text-purple-400",
+      textClass: "text-purple-300",
+    },
+    [UserRole.AFFILIATE_MANAGER]: {
+      wrapperClass: "bg-blue-500/10 border-blue-500/30",
+      iconClass: "text-blue-400",
+      textClass: "text-blue-300",
+    },
+    [UserRole.VIP_BLACK]: {
+      wrapperClass: "bg-violet-500/15 border-violet-400/35 shadow-[0_0_20px_rgba(168,85,247,0.2)]",
+      iconClass: "text-violet-300",
+      textClass: "text-violet-200",
+    },
+    [UserRole.VIP_GOLD]: {
+      wrapperClass: "bg-yellow-500/15 border-yellow-400/35 shadow-[0_0_18px_rgba(234,179,8,0.18)]",
+      iconClass: "text-yellow-300",
+      textClass: "text-yellow-200",
+    },
+    [UserRole.VIP_SILVER]: {
+      wrapperClass: "bg-gray-400/15 border-gray-300/35",
+      iconClass: "text-gray-200",
+      textClass: "text-gray-100",
+    },
+    [UserRole.AFFILIATE]: {
+      wrapperClass: "bg-white/10 border-white/30",
+      iconClass: "text-white",
+      textClass: "text-white",
+    },
+  };
+  const statusBadgeStyle = statusBadgeByRole[role] ?? statusBadgeByRole[UserRole.AFFILIATE];
 
   // Mock data
   const profileData = {
@@ -49,10 +141,10 @@ export function MeuPerfil() {
     birthDate: "15/03/1995",
     address: "Rua das Flores, 123 - São Paulo, SP",
     memberSince: "Janeiro 2024",
-    status: "AFFILIATE PRO",
-    ranking: "#47",
-    totalEarnings: "R$ 127.450,00",
-    conversion: "8.5%",
+    status: roleProfile.status,
+    ranking: roleProfile.ranking,
+    totalEarnings: roleProfile.totalEarnings,
+    conversion: roleProfile.conversion,
   };
 
   const pixData = {
@@ -179,9 +271,11 @@ export function MeuPerfil() {
               </p>
 
               {/* Status Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#ffffff]/10 border border-[#ffffff]/30 rounded-lg mb-4">
-                <CheckCircle className="w-4 h-4 text-[#ffffff]" />
-                <span className="text-[#ffffff] font-semibold">
+              <div
+                className={`inline-flex items-center gap-2 px-4 py-2 border rounded-lg mb-4 ${statusBadgeStyle.wrapperClass}`}
+              >
+                <CheckCircle className={`w-4 h-4 ${statusBadgeStyle.iconClass}`} />
+                <span className={`font-semibold ${statusBadgeStyle.textClass}`}>
                   {profileData.status}
                 </span>
               </div>

@@ -45,6 +45,7 @@ import {
 import { cn } from "../components/ui/utils";
 import { GlobalSearch } from "./GlobalSearch";
 import { getSession, logoutUser } from "../auth/auth";
+import { ROLE_LABELS, UserRole, VIP_VISUALS } from "../auth/hierarchyTypes";
 
 const menuItems = [
   { path: "/", label: "Visão Geral", icon: LayoutDashboard },
@@ -153,13 +154,6 @@ export function Layout() {
     return () => clearInterval(timer);
   }, []);
 
-  // Ranking data
-  const currentLevel = "Afiliado Prata";
-  const nextLevel = "Afiliado Ouro";
-  const currentSales = 67000;
-  const requiredSales = 100000;
-  const currentProgress = Math.round((currentSales / requiredSales) * 100);
-
   const session = getSession();
   const displayName = session?.name?.trim() || "Usuário";
   const initials = displayName
@@ -168,6 +162,76 @@ export function Layout() {
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join("");
+  const role = (session?.role as UserRole | undefined) ?? UserRole.AFFILIATE;
+  const displayRole = ROLE_LABELS[role] ?? ROLE_LABELS[UserRole.AFFILIATE];
+  const vipVisual = VIP_VISUALS[role];
+  const isAdmin = role === UserRole.ADMIN;
+
+  // Barra superior focada apenas na trilha: Afiliado -> VIP Silver -> VIP Gold -> VIP Black.
+  const vipLadderProgress: Record<
+    UserRole,
+    { currentLabel: string; nextLabel: string; currentValue: number; targetValue: number; fillClass: string }
+  > = {
+    [UserRole.AFFILIATE]: {
+      currentLabel: "Afiliado",
+      nextLabel: "VIP Silver",
+      currentValue: 25,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-gray-300 to-gray-500",
+    },
+    [UserRole.VIP_SILVER]: {
+      currentLabel: "VIP Silver",
+      nextLabel: "VIP Gold",
+      currentValue: 55,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-gray-300 to-gray-500",
+    },
+    [UserRole.VIP_GOLD]: {
+      currentLabel: "VIP Gold",
+      nextLabel: "VIP Black",
+      currentValue: 80,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-yellow-400 to-amber-500",
+    },
+    [UserRole.VIP_BLACK]: {
+      currentLabel: "VIP Black",
+      nextLabel: "Nível Máximo",
+      currentValue: 100,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-fuchsia-400 to-violet-500 shadow-[0_0_12px_rgba(217,70,239,0.65)]",
+    },
+    [UserRole.ADMIN]: {
+      currentLabel: "Afiliado",
+      nextLabel: "VIP Silver",
+      currentValue: 25,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-gray-300 to-gray-500",
+    },
+    [UserRole.SUPERVISOR]: {
+      currentLabel: "Afiliado",
+      nextLabel: "VIP Silver",
+      currentValue: 25,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-gray-300 to-gray-500",
+    },
+    [UserRole.AFFILIATE_MANAGER]: {
+      currentLabel: "Afiliado",
+      nextLabel: "VIP Silver",
+      currentValue: 25,
+      targetValue: 100,
+      fillClass: "bg-gradient-to-r from-gray-300 to-gray-500",
+    },
+  };
+
+  const hierarchyProgress = vipLadderProgress[role] ?? vipLadderProgress[UserRole.AFFILIATE];
+  const currentLevel = hierarchyProgress.currentLabel;
+  const nextLevel = hierarchyProgress.nextLabel;
+  const currentSales = hierarchyProgress.currentValue;
+  const requiredSales = hierarchyProgress.targetValue;
+  const currentProgress = Math.round((currentSales / requiredSales) * 100);
+  const progressFillClass = hierarchyProgress.fillClass;
+  const isOpsRole = role === UserRole.ADMIN || role === UserRole.SUPERVISOR;
+  const isAffiliateManagerRole = role === UserRole.AFFILIATE_MANAGER;
 
   return (
     <div className="flex min-h-screen bg-[#000000] relative text-white">
@@ -282,29 +346,42 @@ export function Layout() {
           <Link
             to="/meu-perfil"
             onClick={() => setIsMobileNavOpen(false)}
-            className="flex items-center px-2 py-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer w-full gap-3"
+            className={cn(
+              "flex items-center px-2 py-2 rounded-lg hover:bg-gray-800/50 transition-colors cursor-pointer w-full gap-3",
+              vipVisual && "border",
+              vipVisual?.panelClass,
+            )}
           >
             <div className="w-8 h-8 shrink-0 bg-[#ffffff] rounded-full flex items-center justify-center text-black font-bold text-xs">
               {initials || "U"}
             </div>
             <div className={cn("flex-1 transition-all duration-200 overflow-hidden whitespace-nowrap", isDesktopNavCollapsed && "xl:opacity-0 xl:w-0")}>
               <p className="text-white text-sm font-medium truncate">{displayName}</p>
-              <p className="text-gray-400 text-xs truncate uppercase">Affiliate</p>
+              <p
+                className={cn(
+                  "text-xs truncate uppercase inline-flex px-2 py-0.5 rounded-full",
+                  vipVisual ? vipVisual.chipClass : "text-gray-400",
+                )}
+              >
+                {displayRole}
+              </p>
             </div>
           </Link>
 
-          <Link
-            to="/admin"
-            className={cn(
-              "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors w-full gap-3",
-              isDesktopNavCollapsed && "justify-center"
-            )}
-          >
-            <Settings className="w-5 h-5 shrink-0" />
-            <span className={cn("transition-all duration-200 overflow-hidden", isDesktopNavCollapsed && "xl:opacity-0 xl:w-0")}>
-              Painel Admin
-            </span>
-          </Link>
+          {isAdmin && (
+            <Link
+              to="/admin"
+              className={cn(
+                "flex items-center px-3 py-2.5 rounded-lg text-sm font-medium text-blue-400 hover:text-blue-300 transition-colors w-full gap-3",
+                isDesktopNavCollapsed && "justify-center"
+              )}
+            >
+              <Settings className="w-5 h-5 shrink-0" />
+              <span className={cn("transition-all duration-200 overflow-hidden", isDesktopNavCollapsed && "xl:opacity-0 xl:w-0")}>
+                Painel Admin
+              </span>
+            </Link>
+          )}
 
           <button
             onClick={() => {
@@ -353,30 +430,75 @@ export function Layout() {
                       <Trophy className="w-5 h-5" />
                     </div>
                     <div className="min-w-0">
-                      <p className="text-white font-bold text-sm truncate">{currentLevel}</p>
+                      <p className="text-white font-bold text-sm truncate">
+                        {isOpsRole
+                          ? "Painel Operacional"
+                          : isAffiliateManagerRole
+                            ? "Gestão de Afiliados"
+                            : currentLevel}
+                      </p>
                       <p className="text-xs text-gray-400 truncate uppercase tracking-tighter">
-                        {currentSales.toLocaleString("pt-BR")} / {requiredSales.toLocaleString("pt-BR")} Vendas
+                        {isOpsRole
+                          ? "Monitoramento de performance e compliance"
+                          : isAffiliateManagerRole
+                            ? "Visão de carteira e evolução dos afiliados"
+                            : `${currentSales.toLocaleString("pt-BR")} / ${requiredSales.toLocaleString("pt-BR")} Vendas`}
                       </p>
                     </div>
                   </div>
                   <div className="hidden sm:flex items-center gap-2 shrink-0">
                     <TrendingUp className="w-4 h-4 text-[#ffffff]" />
                     <span className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                      Próximo: <span className="text-yellow-400 font-bold">{nextLevel}</span>
+                      {isOpsRole ? (
+                        <>
+                          Modo: <span className="text-blue-400 font-bold">Administração</span>
+                        </>
+                      ) : isAffiliateManagerRole ? (
+                        <>
+                          Modo: <span className="text-indigo-300 font-bold">Carteira</span>
+                        </>
+                      ) : (
+                        <>
+                          Próximo: <span className="text-yellow-400 font-bold">{nextLevel}</span>
+                        </>
+                      )}
                     </span>
                   </div>
                 </div>
 
                 <div className="relative w-full h-2 bg-gray-800 rounded-full overflow-hidden">
                   <div
-                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-[#ffffff] to-[#ffffff] rounded-full transition-all duration-500 shadow-[0_0_10px_rgba(255,255,255,0.5)]"
-                    style={{ width: `${currentProgress}%` }}
+                    className={cn(
+                      "absolute top-0 left-0 h-full rounded-full transition-all duration-500",
+                      isOpsRole
+                        ? "bg-gradient-to-r from-blue-500 to-cyan-400"
+                        : isAffiliateManagerRole
+                          ? "bg-gradient-to-r from-indigo-400 to-purple-500"
+                          : progressFillClass,
+                    )}
+                    style={{ width: `${isOpsRole ? 100 : isAffiliateManagerRole ? 82 : currentProgress}%` }}
                   />
                 </div>
                 <div className="flex items-center justify-between mt-2">
-                  <span className="text-xs text-gray-500">0</span>
-                  <span className="text-xs font-bold text-[#ffffff]">{currentProgress}%</span>
-                  <span className="text-xs text-gray-500">{requiredSales.toLocaleString("pt-BR")}</span>
+                  {isOpsRole ? (
+                    <>
+                      <span className="text-xs text-gray-500 uppercase">Status</span>
+                      <span className="text-xs font-bold text-cyan-300 uppercase">Operacional</span>
+                      <span className="text-xs text-gray-500 uppercase">Acesso Total</span>
+                    </>
+                  ) : isAffiliateManagerRole ? (
+                    <>
+                      <span className="text-xs text-gray-500 uppercase">Rede</span>
+                      <span className="text-xs font-bold text-indigo-300 uppercase">Carteira Ativa</span>
+                      <span className="text-xs text-gray-500 uppercase">Gestão</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-xs text-gray-500">0</span>
+                      <span className="text-xs font-bold text-[#ffffff]">{currentProgress}%</span>
+                      <span className="text-xs text-gray-500">{requiredSales.toLocaleString("pt-BR")}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

@@ -18,6 +18,7 @@ import {
   AlertCircle
 } from "lucide-react";
 import { cn } from "../components/ui/utils";
+import { useCanManageAffiliates } from "../hooks/useHierarchy";
 import { getSession } from "../auth/auth";
 
 // ==========================================
@@ -199,6 +200,8 @@ export function Indicacoes() {
   const session = getSession();
   const displayName = session?.name?.trim() || "Usuário";
 
+  const canManageAffiliates = useCanManageAffiliates();
+
   const [referrals] = useState([
     { id: "sub_01", name: displayName, level: "N1 (Direto)", subAffiliates: 12, status: "active" },
     { id: "sub_02", name: "Ana Carolina", level: "N1 (Direto)", subAffiliates: 0, status: "pending" },
@@ -270,53 +273,60 @@ export function Indicacoes() {
           </div>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-black/40 text-gray-600 uppercase text-[10px] font-black tracking-widest italic">
-                <th className="text-left px-8 py-6">Afiliado</th>
-                <th className="text-left px-8 py-6 text-center">Nível</th>
-                <th className="text-left px-8 py-6 text-center">Rede Abaixo</th>
-                <th className="text-left px-8 py-6 text-center">Status</th>
-                <th className="text-right px-8 py-6">Operação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {referrals.map((ref) => (
-                <tr key={ref.id} className="group hover:bg-white/[0.02] transition-all">
-                  <td className="px-8 py-6">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-black text-white">{ref.name.substring(0, 2).toUpperCase()}</div>
-                      <p className="text-white font-black uppercase text-sm tracking-tight">{ref.name}</p>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{ref.level}</td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="inline-flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl">
-                      <span className="text-white font-black text-xs">{ref.subAffiliates}</span>
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <span className={cn(
-                      "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
-                      ref.status === "active" ? "text-green-500 border-green-500/20 bg-green-500/5" : "text-yellow-500 border-yellow-500/20 bg-yellow-500/5"
-                    )}>
-                      {ref.status === "active" ? "Ativo" : "Pendente"}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <button
-                      onClick={() => setActiveNegotiation({ isOpen: true, name: ref.name, id: ref.id })}
-                      className="bg-white/5 border border-white/10 hover:bg-white hover:text-black px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
-                    >
-                      Ajustar Negociações
-                    </button>
-                  </td>
+        {canManageAffiliates ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-black/40 text-gray-600 uppercase text-[10px] font-black tracking-widest italic">
+                  <th className="text-left px-8 py-6">Afiliado</th>
+                  <th className="text-left px-8 py-6 text-center">Nível</th>
+                  <th className="text-left px-8 py-6 text-center">Rede Abaixo</th>
+                  <th className="text-left px-8 py-6 text-center">Status</th>
+                  <th className="text-right px-8 py-6">Operação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-white/5">
+                {referrals.map((ref) => (
+                  <tr key={ref.id} className="group hover:bg-white/[0.02] transition-all">
+                    <td className="px-8 py-6">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-white/10 border border-white/10 flex items-center justify-center text-[10px] font-black text-white">{ref.name.substring(0, 2).toUpperCase()}</div>
+                        <p className="text-white font-black uppercase text-sm tracking-tight">{ref.name}</p>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-center text-[10px] font-black text-gray-400 uppercase tracking-widest">{ref.level}</td>
+                    <td className="px-8 py-6 text-center">
+                      <div className="inline-flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl">
+                        <span className="text-white font-black text-xs">{ref.subAffiliates}</span>
+                      </div>
+                    </td>
+                    <td className="px-8 py-6 text-center">
+                      <span className={cn(
+                        "text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full border",
+                        ref.status === "active" ? "text-green-500 border-green-500/20 bg-green-500/5" : "text-yellow-500 border-yellow-500/20 bg-yellow-500/5"
+                      )}>
+                        {ref.status === "active" ? "Ativo" : "Pendente"}
+                      </span>
+                    </td>
+                    <td className="px-8 py-6 text-right">
+                      <button
+                        onClick={() => setActiveNegotiation({ isOpen: true, name: ref.name, id: ref.id })}
+                        className="bg-white/5 border border-white/10 hover:bg-white hover:text-black px-6 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all italic active:scale-95"
+                      >
+                        Ajustar Negociações
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="p-16 text-center text-gray-500">
+            <p className="text-white font-black text-sm uppercase tracking-widest mb-2">Acesso Restrito</p>
+            <p className="text-xs text-gray-500">Sua hierarquia não permite visualizar esta seção.</p>
+          </div>
+        )}
       </section>
 
       {/* MODAL QR CODE */}

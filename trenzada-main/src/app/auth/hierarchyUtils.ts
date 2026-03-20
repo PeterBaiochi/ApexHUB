@@ -22,6 +22,7 @@ export interface User {
  */
 export function hasPermission(user: User, permission: Permission): boolean {
   const permissions = ROLE_PERMISSIONS[user.role];
+  if (!permissions) return false;
   return permissions.includes(permission);
 }
 
@@ -44,6 +45,7 @@ export function hasAnyPermission(user: User, permissions: Permission[]): boolean
  */
 export function roleHasPermission(role: UserRole, permission: Permission): boolean {
   const permissions = ROLE_PERMISSIONS[role];
+  if (!permissions) return false;
   return permissions.includes(permission);
 }
 

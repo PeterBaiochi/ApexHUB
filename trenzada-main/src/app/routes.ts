@@ -28,6 +28,7 @@ import { AdminCampanhas } from "./pages/admin/AdminCampanhas";
 import { Login } from "./pages/Login";
 import { Register } from "./pages/Register";
 import { RequireAuth } from "./components/auth/RequireAuth";
+import { RequireAdmin } from "./components/auth/RequireAdmin";
 
 export const router = createBrowserRouter([
   {
@@ -68,7 +69,7 @@ export const router = createBrowserRouter([
   },
   {
     path: "/admin",
-    Component: RequireAuth,
+    Component: RequireAdmin,
     children: [
       {
         Component: AdminLayout,

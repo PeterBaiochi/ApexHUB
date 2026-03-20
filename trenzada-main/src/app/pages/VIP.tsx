@@ -11,6 +11,8 @@ import {
   CheckCircle2,
   ArrowRight,
 } from "lucide-react";
+import { useUserRole } from "../hooks/useHierarchy";
+import { ROLE_HIERARCHY, UserRole } from "../auth/hierarchyTypes";
 
 interface VIPLevel {
   id: string;
@@ -150,6 +152,19 @@ const rankingBenefits = [
 
 export function VIP() {
   const [selectedLevel, setSelectedLevel] = useState<string | null>(null);
+  const user = useUserRole();
+  const currentRole = user?.role;
+
+  const isVipLevel =
+    currentRole === UserRole.VIP_BLACK ||
+    currentRole === UserRole.VIP_GOLD ||
+    currentRole === UserRole.VIP_SILVER;
+
+  const getVipRoleById = (id: string): UserRole => {
+    if (id === "black") return UserRole.VIP_BLACK;
+    if (id === "gold") return UserRole.VIP_GOLD;
+    return UserRole.VIP_SILVER;
+  };
 
   const handleSolicitacao = (levelName: string) => {
     alert(
@@ -263,6 +278,11 @@ export function VIP() {
           {vipLevels.map((level) => {
             const Icon = level.icon;
             const isSelected = selectedLevel === level.id;
+            const targetRole = getVipRoleById(level.id);
+            const canRequestVip = !isVipLevel
+              ? true
+              : ROLE_HIERARCHY[currentRole as UserRole] <
+                ROLE_HIERARCHY[targetRole];
 
             return (
               <div
@@ -332,8 +352,14 @@ export function VIP() {
 
                   {/* Button */}
                   <button
-                    onClick={() => handleSolicitacao(level.name)}
-                    className={`w-full py-3 rounded-lg font-bold text-white bg-gradient-to-r ${level.bgGradient} hover:opacity-90 transition-all ${level.glowColor} flex items-center justify-center gap-2`}
+                    disabled={!canRequestVip}
+                    onClick={() => {
+                      if (!canRequestVip) return;
+                      handleSolicitacao(level.name);
+                    }}
+                    className={`w-full py-3 rounded-lg font-bold text-white bg-gradient-to-r ${level.bgGradient} transition-all ${level.glowColor} flex items-center justify-center gap-2 ${
+                      canRequestVip ? "hover:opacity-90" : "opacity-40 cursor-not-allowed grayscale"
+                    }`}
                   >
                     <Crown className="w-5 h-5" />
                     Solicitar {level.name}

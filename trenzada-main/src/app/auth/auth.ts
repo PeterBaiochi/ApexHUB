@@ -1,9 +1,12 @@
+import { UserRole } from "./hierarchyTypes";
+
 const SESSION_KEY = "auth.session.v1";
 
 type Session = {
   token: string;
   email: string;
   name: string;
+  role: UserRole;
 };
 
 function safeJsonParse<T>(value: string | null): T | null {
@@ -41,7 +44,17 @@ async function apiRequest<T>(path: string, init: RequestInit): Promise<T> {
 }
 
 export function getSession(): Session | null {
-  return safeJsonParse<Session>(localStorage.getItem(SESSION_KEY));
+  const parsed = safeJsonParse<Partial<Session>>(
+    localStorage.getItem(SESSION_KEY),
+  );
+  if (!parsed || !parsed.token || !parsed.email) return null;
+
+  return {
+    token: parsed.token,
+    email: parsed.email,
+    name: parsed.name ?? "",
+    role: (parsed.role as UserRole) ?? UserRole.AFFILIATE,
+  };
 }
 
 export function isAuthenticated(): boolean {
@@ -72,13 +85,14 @@ export async function loginUser(input: {
 
   const data = await apiRequest<{
     token: string;
-    user: { name: string; email: string };
+    user: { name: string; email: string; role: UserRole };
   }>("/login", { method: "POST", body: JSON.stringify(payload) });
 
   const session: Session = {
     token: data.token,
     email: data.user.email,
     name: data.user.name,
+    role: data.user.role ?? UserRole.AFFILIATE,
   };
 
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));

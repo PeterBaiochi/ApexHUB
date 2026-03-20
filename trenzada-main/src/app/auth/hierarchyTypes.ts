@@ -54,6 +54,43 @@ export const ROLE_COLORS: Record<UserRole, string> = {
 };
 
 /**
+ * Estilo visual por nível VIP (diferenciação leve sem alterar layout inteiro)
+ */
+export const VIP_VISUALS: Partial<
+  Record<
+    UserRole,
+    {
+      chipClass: string;
+      panelClass: string;
+      title: string;
+      perk: string;
+    }
+  >
+> = {
+  [UserRole.VIP_SILVER]: {
+    chipClass:
+      "bg-gradient-to-r from-gray-300/20 to-gray-500/20 border border-gray-300/40 text-gray-200",
+    panelClass: "border-gray-300/30 bg-gradient-to-r from-gray-200/10 to-transparent",
+    title: "VIP Silver",
+    perk: "Suporte prioritário e materiais VIP de conversão.",
+  },
+  [UserRole.VIP_GOLD]: {
+    chipClass:
+      "bg-gradient-to-r from-yellow-400/20 to-amber-600/20 border border-yellow-400/40 text-yellow-300",
+    panelClass: "border-yellow-400/30 bg-gradient-to-r from-yellow-500/10 to-transparent",
+    title: "VIP Gold",
+    perk: "Acesso antecipado a campanhas e bônus de performance.",
+  },
+  [UserRole.VIP_BLACK]: {
+    chipClass:
+      "bg-gradient-to-r from-violet-500/25 to-fuchsia-700/25 border border-violet-400/40 text-violet-200 shadow-[0_0_16px_rgba(168,85,247,0.25)]",
+    panelClass: "border-violet-400/35 bg-gradient-to-r from-violet-500/15 to-transparent",
+    title: "VIP Black",
+    perk: "Prioridade máxima, suporte dedicado e vantagens exclusivas Black.",
+  },
+};
+
+/**
  * Permissões específicas por role
  */
 export type Permission = 

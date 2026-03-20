@@ -33,6 +33,9 @@ import {
   Image as ImageIcon
 } from "lucide-react";
 import { cn } from "../components/ui/utils";
+import { useCanViewTotalBilling } from "../hooks/useHierarchy";
+import { useUserRole } from "../hooks/useHierarchy";
+import { VIP_VISUALS } from "../auth/hierarchyTypes";
 
 // ==========================================
 // MOTOR DE DADOS SIMULADOS (LEI 4)
@@ -51,6 +54,10 @@ const generateSimulatedData = (kpiLeft: string, kpiRight: string) => {
 };
 
 export function VisaoGeral() {
+  const canViewTotalBilling = useCanViewTotalBilling();
+  const user = useUserRole();
+  const vipVisual = user ? VIP_VISUALS[user.role] : undefined;
+
   // ==========================================
   // ESTADOS CONSOLIDADOS (FIREBASE READY - LEI 4)
   // ==========================================
@@ -120,6 +127,25 @@ export function VisaoGeral() {
         </div>
       </section>
 
+      {vipVisual && (
+        <section className={cn("border rounded-3xl p-5", vipVisual.panelClass)}>
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
+                Beneficio Ativo
+              </p>
+              <h3 className="text-xl font-black text-white tracking-tight">
+                {vipVisual.title}
+              </h3>
+              <p className="text-sm text-gray-300 mt-1">{vipVisual.perk}</p>
+            </div>
+            <div className={cn("text-[10px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full", vipVisual.chipClass)}>
+              Nivel VIP
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* --- SEÇÃO 2: MÉTRICAS PRINCIPAIS --- */}
       <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         <div className="bg-white rounded-3xl p-8 group relative overflow-hidden transition-all hover:scale-[1.02] shadow-[0_20px_50px_rgba(255,255,255,0.1)]">
@@ -134,20 +160,35 @@ export function VisaoGeral() {
           </div>
         </div>
 
-        <div className="bg-[#050505] border border-gray-800 rounded-3xl p-8 flex flex-col justify-between group hover:border-white/20 transition-all">
-          <div className="flex justify-between items-start">
-            <div className="space-y-1">
-              <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Receita Total</p>
-              <div className="flex items-center gap-2">
-                <button onClick={() => setRevenueType("CPA")} className={cn("text-xs font-bold transition-all", revenueType === "CPA" ? "text-white underline underline-offset-4" : "text-gray-600 hover:text-gray-400")}>CPA</button>
-                <span className="text-gray-800">/</span>
-                <button onClick={() => setRevenueType("REV")} className={cn("text-xs font-bold transition-all", revenueType === "REV" ? "text-white underline underline-offset-4" : "text-gray-600 hover:text-gray-400")}>REV</button>
+        {canViewTotalBilling ? (
+          <div className="bg-[#050505] border border-gray-800 rounded-3xl p-8 flex flex-col justify-between group hover:border-white/20 transition-all">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Receita Total</p>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => setRevenueType("CPA")} className={cn("text-xs font-bold transition-all", revenueType === "CPA" ? "text-white underline underline-offset-4" : "text-gray-600 hover:text-gray-400")}>CPA</button>
+                  <span className="text-gray-800">/</span>
+                  <button onClick={() => setRevenueType("REV")} className={cn("text-xs font-bold transition-all", revenueType === "REV" ? "text-white underline underline-offset-4" : "text-gray-600 hover:text-gray-400")}>REV</button>
+                </div>
               </div>
+              <Activity className="text-gray-700 group-hover:text-white transition-colors" />
             </div>
-            <Activity className="text-gray-700 group-hover:text-white transition-colors" />
+            <h2 className="text-3xl font-black text-white mt-4 tracking-tighter">R$ {revenueType === "CPA" ? "1.500,00" : "840,00"}</h2>
           </div>
-          <h2 className="text-3xl font-black text-white mt-4 tracking-tighter">R$ {revenueType === "CPA" ? "1.500,00" : "840,00"}</h2>
-        </div>
+        ) : (
+          <div className="bg-[#050505] border border-gray-800 rounded-3xl p-8 flex flex-col justify-between transition-all opacity-80">
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <p className="text-gray-500 text-[10px] font-black uppercase tracking-widest">Receita Total</p>
+                <p className="text-white/20 text-xs font-black uppercase tracking-widest mt-2">
+                  Restrito
+                </p>
+              </div>
+              <Activity className="text-gray-700" />
+            </div>
+            <h2 className="text-3xl font-black text-white/10 mt-4 tracking-tighter">—</h2>
+          </div>
+        )}
 
         <div className="bg-[#050505] border border-gray-800 rounded-3xl p-8 flex flex-col justify-between group hover:border-white/20 transition-all">
           <div className="flex justify-between items-start">

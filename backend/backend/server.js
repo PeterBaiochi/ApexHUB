@@ -34,6 +34,7 @@ async function ensureUsersTable() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255) NOT NULL,
       email VARCHAR(255) NOT NULL UNIQUE,
+        role VARCHAR(64) NOT NULL DEFAULT 'affiliate',
       password_hash VARCHAR(255) NOT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -51,9 +52,20 @@ async function resolvePasswordColumn() {
   return "password_hash";
 }
 
+async function resolveRoleColumn() {
+  const [roleCol] = await pool.query("SHOW COLUMNS FROM users LIKE 'role'");
+  if (Array.isArray(roleCol) && roleCol.length > 0) return "role";
+
+  // Add role with a safe default for existing users.
+  await pool.query(
+    "ALTER TABLE users ADD COLUMN role VARCHAR(64) NOT NULL DEFAULT 'affiliate'",
+  );
+  return "role";
+}
+
 function signToken(user) {
   return jwt.sign(
-    { sub: user.id, email: user.email, name: user.name },
+    { sub: user.id, email: user.email, name: user.name, role: user.role },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRES_IN },
   );
@@ -61,6 +73,29 @@ function signToken(user) {
 
 function normalizeEmail(email) {
   return String(email ?? "").trim().toLowerCase();
+}
+
+function normalizeRole(role) {
+  const value = String(role ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "_");
+
+  // Normaliza nomes em PT/EN para as chaves do frontend.
+  if (["admin", "administrator"].includes(value)) return "admin";
+  if (["supervisor"].includes(value)) return "supervisor";
+
+  if (["affiliate", "comum", "afiliado", "afiliado_comum"].includes(value)) return "affiliate";
+  if (["affiliate_manager", "gerente", "gerente_de_afiliados", "gerente_de_afiliado"].includes(value)) {
+    return "affiliate_manager";
+  }
+
+  if (["vip_black", "black", "vipblack"].includes(value)) return "vip_black";
+  if (["vip_gold", "gold", "vipgold"].includes(value)) return "vip_gold";
+  if (["vip_silver", "silver", "vipsilver"].includes(value)) return "vip_silver";
+
+  // Default seguro
+  return "affiliate";
 }
 
 app.get("/", (_req, res) => {
@@ -73,6 +108,8 @@ app.post("/register", async (req, res) => {
     const name = String(req.body?.name ?? "").trim();
     const email = normalizeEmail(req.body?.email);
     const password = String(req.body?.password ?? "");
+    // Por segurança: novos cadastros entram como afiliado comum.
+    const role = "affiliate";
 
     if (!name) return res.status(400).json({ message: "Informe seu nome." });
     if (!email) return res.status(400).json({ message: "Informe seu email." });
@@ -87,16 +124,16 @@ app.post("/register", async (req, res) => {
 
     const passwordHash = await bcrypt.hash(password, 10);
     const [result] = await pool.query(
-      `INSERT INTO users (name, email, ${app.locals.passwordColumn}) VALUES (?, ?, ?)`,
-      [name, email, passwordHash],
+      `INSERT INTO users (name, email, role, ${app.locals.passwordColumn}) VALUES (?, ?, ?, ?)`,
+      [name, email, role, passwordHash],
     );
 
     const userId = result?.insertId;
-    const token = signToken({ id: userId, email, name });
+    const token = signToken({ id: userId, email, name, role });
     return res.status(201).json({
       message: "Usuário criado com sucesso",
       token,
-      user: { id: userId, name, email },
+      user: { id: userId, name, email, role },
     });
   } catch (err) {
     console.error("REGISTER_ERROR", err);
@@ -114,7 +151,7 @@ app.post("/login", async (req, res) => {
     if (!password) return res.status(400).json({ message: "Informe sua senha." });
 
     const [rows] = await pool.query(
-      `SELECT id, name, email, ${app.locals.passwordColumn} AS password_hash FROM users WHERE email = ? LIMIT 1`,
+      `SELECT id, name, email, role, ${app.locals.passwordColumn} AS password_hash FROM users WHERE email = ? LIMIT 1`,
       [email],
     );
 
@@ -124,11 +161,12 @@ app.post("/login", async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ message: "Email ou senha inválidos." });
 
-    const token = signToken(user);
+    const role = normalizeRole(user.role);
+    const token = signToken({ ...user, role });
     return res.json({
       message: "Login realizado",
       token,
-      user: { id: user.id, name: user.name, email: user.email },
+      user: { id: user.id, name: user.name, email: user.email, role },
     });
   } catch {
     console.error("LOGIN_ERROR");
@@ -145,5 +183,6 @@ app.listen(PORT, async () => {
   }
   await ensureUsersTable();
   app.locals.passwordColumn = await resolvePasswordColumn();
+  app.locals.roleColumn = await resolveRoleColumn();
   console.log(`Servidor rodando na porta ${PORT}`);
 });

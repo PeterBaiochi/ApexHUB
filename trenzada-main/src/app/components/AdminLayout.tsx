@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from "react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   Users,
@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import { cn } from "./ui/utils";
 import { getSession, logoutUser } from "../auth/auth";
+import { ROLE_LABELS, UserRole } from "../auth/hierarchyTypes";
+import React from "react";
 
 const adminMenuItems = [
   { path: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -31,6 +33,8 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isAdminMenuOpen, setIsAdminMenuOpen] = useState(false);
   const session = getSession();
   const displayName = session?.name?.trim() || "Usuário";
   const initials = displayName
@@ -39,6 +43,51 @@ export function AdminLayout() {
     .slice(0, 2)
     .map((p) => p[0]!.toUpperCase())
     .join("");
+  const role = (session?.role as UserRole | undefined) ?? UserRole.AFFILIATE;
+  const displayRole = ROLE_LABELS[role] ?? ROLE_LABELS[UserRole.AFFILIATE];
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  const adminNotifications = [
+    {
+      id: "n1",
+      title: "Novo cadastro aguardando aprovação",
+      description: "3 usuários pendentes de verificação documental.",
+      time: "Agora",
+    },
+    {
+      id: "n2",
+      title: "Solicitação de saque elevada",
+      description: "Valor acima do limite padrão requer auditoria.",
+      time: "18 min atrás",
+    },
+    {
+      id: "n3",
+      title: "Campanha enviada para revisão",
+      description: "Campanha 'Black Offer' aguardando validação.",
+      time: "1h atrás",
+    },
+  ];
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (
+        notificationsRef.current &&
+        !notificationsRef.current.contains(event.target as Node)
+      ) {
+        setIsNotificationsOpen(false);
+      }
+      if (
+        adminMenuRef.current &&
+        !adminMenuRef.current.contains(event.target as Node)
+      ) {
+        setIsAdminMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
 
   return (
     <div className="flex h-screen bg-[#0a0a0c]">
@@ -94,7 +143,7 @@ export function AdminLayout() {
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-white hover:bg-[#1a1a1f] w-full transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Voltar ao ScaleHub</span>
+            <span>Voltar ao ApexHub</span>
           </Link>
 
           <button
@@ -140,20 +189,96 @@ export function AdminLayout() {
             {/* Right Side */}
             <div className="flex items-center gap-4">
               {/* Notifications */}
-              <button className="relative p-2 text-gray-400 hover:text-white hover:bg-[#1a1a1f] rounded-lg transition-colors">
-                <Bell className="w-5 h-5" />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-              </button>
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  onClick={() => {
+                    setIsNotificationsOpen((v) => !v);
+                    setIsAdminMenuOpen(false);
+                  }}
+                  className="relative p-2 text-gray-400 hover:text-white hover:bg-[#1a1a1f] rounded-lg transition-colors"
+                >
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                </button>
+
+                {isNotificationsOpen && (
+                  <div className="absolute right-0 mt-2 w-96 bg-[#121214] border border-[#27272a] rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#27272a]">
+                      <p className="text-xs font-black uppercase tracking-widest text-white">
+                        Notificações Admin
+                      </p>
+                    </div>
+                    <div className="max-h-80 overflow-y-auto">
+                      {adminNotifications.map((notification) => (
+                        <div
+                          key={notification.id}
+                          className="px-4 py-3 border-b border-[#27272a]/70 hover:bg-[#1a1a1f] transition-colors"
+                        >
+                          <p className="text-sm font-semibold text-white">
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {notification.description}
+                          </p>
+                          <p className="text-[10px] text-gray-500 mt-1 uppercase">
+                            {notification.time}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* Admin Profile */}
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-white">{displayName}</p>
-                  <p className="text-xs text-gray-500">Administrador</p>
-                </div>
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">{initials || "U"}</span>
-                </div>
+              <div className="relative" ref={adminMenuRef}>
+                <button
+                  onClick={() => {
+                    setIsAdminMenuOpen((v) => !v);
+                    setIsNotificationsOpen(false);
+                  }}
+                  className="flex items-center gap-3 hover:bg-[#1a1a1f] rounded-lg px-2 py-1.5 transition-colors"
+                >
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-white">{displayName}</p>
+                    <p className="text-xs text-gray-500">{displayRole}</p>
+                  </div>
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span className="text-white text-sm font-bold">{initials || "U"}</span>
+                  </div>
+                </button>
+
+                {isAdminMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-80 bg-[#121214] border border-[#27272a] rounded-xl shadow-2xl z-50 overflow-hidden">
+                    <div className="px-4 py-3 border-b border-[#27272a] bg-[#1a1a1f]">
+                      <p className="text-xs font-black uppercase tracking-widest text-white">
+                        Perfil Administrativo
+                      </p>
+                    </div>
+                    <div className="p-4 space-y-3 text-sm">
+                      <div>
+                        <p className="text-gray-500 text-xs uppercase">Nome</p>
+                        <p className="text-white font-semibold">{displayName}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs uppercase">Email</p>
+                        <p className="text-white font-semibold">
+                          {session?.email ?? "nao informado"}
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs uppercase">Cargo</p>
+                        <p className="text-white font-semibold">{displayRole}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500 text-xs uppercase">Permissão</p>
+                        <p className="text-emerald-300 font-semibold">
+                          Acesso administrativo habilitado
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
